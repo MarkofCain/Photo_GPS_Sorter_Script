@@ -49,8 +49,13 @@ find "$source_dir" -type f -iname "*.jpg" -print0 | while IFS= read -r -d $'\0' 
     latitude=$(exiftool -n -gpslatitude -s3 "$image")
     longitude=$(exiftool -n -gpslongitude -s3 "$image")
 
-    if [ -n "$latitude"  ] || [ -n "$longitude" ]; then
+    # check the contents of the GPS data.  
+    # If the length of the string of both variables is non-zero, the condition is true (met)
+    # If the length of either string is zero, the condition is false and the photo is skipped
+    if [ -n "$latitude"  ] && [ -n "$longitude" ]; then
         # Compare the extracted coordinates with the specified range
+        # if there is a match, awk returns "1" and the condition is true and the photo is copied
+        # if no match, awk returns 0, the condition is false and the photo is skipped
         if (( $(awk "BEGIN {print ($latitude >= $min_latitude && $latitude <= $max_latitude && $longitude >= $min_longitude && $longitude <= $max_longitude) ? 1 : 0}") )); then
             # Copy the image to the destination directory
             cp "$image" "$destination_dir"
