@@ -37,7 +37,7 @@ mkdir -p "$destination_dir"
 seed_latitude=$(exiftool -n -gpslatitude -s3 "$seed_photo")
 seed_longitude=$(exiftool -n -gpslongitude -s3 "$seed_photo")
 
-# Calculate the minimum and maximum latitude and longitude values
+# Calculate the minimum and maximum latitude and longitude values assuming 364,000 feet in a one degree
 min_latitude=$(awk "BEGIN {print $seed_latitude - ($range_in_feet / 364000)}")
 max_latitude=$(awk "BEGIN {print $seed_latitude + ($range_in_feet / 364000)}")
 min_longitude=$(awk "BEGIN {print $seed_longitude - ($range_in_feet / (364000 * cos($seed_latitude * 3.14159 / 180)))}")
@@ -49,10 +49,14 @@ find "$source_dir" -type f -iname "*.jpg" -print0 | while IFS= read -r -d $'\0' 
     latitude=$(exiftool -n -gpslatitude -s3 "$image")
     longitude=$(exiftool -n -gpslongitude -s3 "$image")
 
-    # Compare the extracted coordinates with the specified range
-    if (( $(awk "BEGIN {print ($latitude >= $min_latitude && $latitude <= $max_latitude && $longitude >= $min_longitude && $longitude <= $max_longitude) ? 1 : 0}") )); then
-        # Copy the image to the destination directory
-        cp "$image" "$destination_dir"
-        echo "Moved $image to $destination_dir"
+    if [ -n "$latitude"  ] || [ -n "$longitude" ]; then
+        # Compare the extracted coordinates with the specified range
+        if (( $(awk "BEGIN {print ($latitude >= $min_latitude && $latitude <= $max_latitude && $longitude >= $min_longitude && $longitude <= $max_longitude) ? 1 : 0}") )); then
+            # Copy the image to the destination directory
+            cp "$image" "$destination_dir"
+            echo "Copied $image to $destination_dir"
+        fi
+    else
+        echo "Skipping $image -- Incomplete GPS data"
     fi
 done
